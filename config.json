@@ -1,0 +1,76 @@
+{
+  "port": 8000,
+  "lyceum": {
+    "base_url": "https://api.lyceum.technology/openai/v1",
+    "base_url_note": "from docs.lyceum.technology/docs/inference/serverless (checked 2026-11-07); GET /models is authoritative",
+    "api_key_env": "LYCEUM_API_KEY",
+    "timeout_s": 240
+  },
+  "models": {
+    "plan": {
+      "name": "moonshotai/kimi-k3.1-pro",
+      "fallback": "qwen/qwen3.8-2.4t-a95b"
+    },
+    "execute": {
+      "name": "z-ai/glm-5.3-flash",
+      "fallback": "deepseek/deepseek-v4-flash-0731"
+    }
+  },
+  "live_runs": false,
+  "live_runs_note": "off for the demo: a full live run took > 7 min (Kimi 503 -> slow Qwen fallback). --check-model --live still works.",
+  "retiring_models": [],
+  "data_class_keywords": {
+    "legal": ["contract", "contracts", "vertrag", "vertraege", "agreement", "agreements"],
+    "personal": ["student", "students", "candidate", "candidates", "cv", "cvs", "bank", "payout", "payouts", "hours", "contacts", "hr", "personal", "certificates"]
+  },
+  "users": {
+    "platform_lead": {
+      "name": "Platform Lead",
+      "role": "Platform Lead",
+      "company": "ucm",
+      "companies": ["*"],
+      "hidden_classes": [],
+      "hidden_fields": [],
+      "perms": ["view_registry", "view_inventory", "view_results", "view_rules", "view_audit", "run_dd", "upload_inventory", "override_class", "confirm_sunset", "flag_human", "extract_knowledge", "edit_registry", "ask", "ask_target", "resolve_questions"],
+      "blurb": "Sees everything. Uploads, runs DD, changes classes, confirms sunsets, asks the target."
+    },
+    "head_of_field": {
+      "name": "Head of Field",
+      "role": "Head of Field",
+      "company": "ucm",
+      "companies": ["ucm", "target_1"],
+      "hidden_classes": ["legal"],
+      "hidden_fields": ["cost_per_year", "saving_per_year", "cost", "cost_raw", "run_cost"],
+      "perms": ["view_registry", "view_inventory", "view_results", "ask"],
+      "blurb": "Need-to-know: ucm + target_1 systems and the plan, no legal entries, no € figures, no rule sheet, no audit log."
+    },
+    "target1_it": {
+      "name": "Target 1 IT Lead",
+      "role": "IT Lead",
+      "company": "target_1",
+      "companies": ["target_1"],
+      "hidden_classes": [],
+      "hidden_fields": [],
+      "perms": ["view_inventory", "upload_inventory", "answer_target"],
+      "blurb": "Sees only target_1's own tool list. Uploads the export and answers questions UCM sends. Never sees UCM's plan, registry or log."
+    },
+    "ceo": {
+      "name": "CEO",
+      "role": "CEO",
+      "company": "ucm",
+      "companies": ["*"],
+      "hidden_classes": [],
+      "hidden_fields": [],
+      "perms": ["view_registry", "view_inventory", "view_results", "view_rules", "view_audit", "override_class", "confirm_sunset", "ask", "ask_target", "resolve_questions"],
+      "blurb": "Sees everything. Changes classes, confirms sunsets, resolves questions."
+    }
+  },
+  "price_currency": "USD",
+  "prices_per_mtok_note": "lyceum.technology/models (checked 2026-11-07), USD per 1M tokens",
+  "prices_per_mtok": {
+    "moonshotai/kimi-k3.1-pro": {"in": 2.0, "out": 10.0},
+    "qwen/qwen3.8-2.4t-a95b": {"in": 2.5, "out": 6.0},
+    "z-ai/glm-5.3-flash": {"in": 0.2, "out": 0.5},
+    "deepseek/deepseek-v4-flash-0731": {"in": 0.25, "out": 0.3}
+  }
+}

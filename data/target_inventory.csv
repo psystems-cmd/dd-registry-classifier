@@ -1,0 +1,18 @@
+name,vendor,category,users,cost_per_year,last_used,owner_role,holds_data,notes
+Microsoft 365 Business Standard,Microsoft,Office Suite,28,"4.032 €",2026-11-05,IT Lead,email; documents,TEST DATA - licence bundle incl. Teams / SharePoint / OneDrive
+MS Teams,Microsoft,Chat,28,incl. M365,06.11.2026,IT Lead,chat messages,TEST DATA - part of M365
+SharePoint Online ,Microsoft,File storage,25,incl. M365,2026-11-04,IT Lead,team sites; HR documents; student certificates,TEST DATA - intranet lives here too
+OneDrive,Microsoft,file-storage,28,incl.,2026-11-03,IT Lead,personal files,TEST DATA
+Miro,Miro,Whiteboard,6,960,2026-10-12,,workshop boards,TEST DATA - nobody knows who pays for this
+Zoho CRM,Zoho,CRM,12,"3.600 €",2026-11-06,Head of Sales,companies; contacts; placements,TEST DATA - their own CRM
+Kandidatenliste_final_v3.xlsx,,Excel,9,0,02.11.2026,Recruiting Lead,student names; CV links; placement status,TEST DATA - on SharePoint; master list?? copies exist
+PayFlow Payouts,PayFlow GmbH (fictional),Billing / Payouts,4,2400,2026-11-01,Finance Lead,student payouts; bank details,TEST DATA - weekly payout run
+DATEV Unternehmen online,DATEV,Finance / Accounting,2,1800,2026-10-31,Finance Lead,bookkeeping,TEST DATA
+Clockodo,Clockodo,Time tracking,20,1.100,2026-11-05,Operations Lead,hours per student,TEST DATA
+BookStack Wiki,self-hosted,Wiki,22,600,2026-10-20,IT Lead,how-tos; process docs,TEST DATA - runs on a VM in the office
+Asana,Asana,Project management,6,1300,02.03.2026,Marketing Lead,campaign tasks,TEST DATA - not used since March
+Formular-Tool,?,?,?,480,2026-10-28,Operations Lead,signup forms; student uploads,TEST DATA - feeds Kandidatenliste? maybe a Zap into PayFlow - unclear
+Dropbox Business,Dropbox,File storage,7,1440,2026-10-30,Sales Lead,pitch decks; signed contracts,TEST DATA - sales team only
+Zoom,Zoom,Video,15,1680,2026-11-04,IT Lead,meeting recordings,TEST DATA
+Mailchimp,Intuit,Email marketing,3,900,2026-10-15,Marketing Lead,newsletter list,TEST DATA
+Calendly,Calendly,Scheduling,10,960,2026-11-05,Recruiting Lead,interview slots,TEST DATA - used for student interviews

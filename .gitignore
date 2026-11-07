@@ -1,0 +1,8 @@
+# runtime state (seed lives in data/seed/)
+data/registry.json
+data/results.json
+data/rules.json
+data/audit.jsonl
+data/.secret
+data/*.tmp
+__pycache__/

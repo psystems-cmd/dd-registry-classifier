@@ -1,0 +1,209 @@
+{
+  "_note": "Canned model responses for dry-run mode (offline demo). TEST DATA.",
+  "plan": {
+    "classes": {
+      "K1": {
+        "criteria": "Placements or payouts stop if it fails: CRM, student data, billing/payout.",
+        "categories": [
+          "crm",
+          "billing",
+          "payout",
+          "payouts",
+          "student database"
+        ]
+      },
+      "K2": {
+        "criteria": "Daily work slows if it fails: file storage, office suite, Excel lists, intranet.",
+        "categories": [
+          "file storage",
+          "office suite",
+          "excel",
+          "spreadsheet",
+          "intranet"
+        ]
+      },
+      "K3": {
+        "criteria": "Duplicates a UCM tool, or unused for more than unused_days.",
+        "categories": [
+          "chat",
+          "wiki",
+          "video",
+          "time tracking",
+          "email marketing"
+        ]
+      }
+    },
+    "keep_local_categories": [
+      "finance",
+      "accounting",
+      "bookkeeping"
+    ],
+    "structured_categories": [
+      "excel",
+      "spreadsheet",
+      "crm"
+    ],
+    "alias_hints": {
+      "teams": "ucm-ops-tool-chat",
+      "webex": "ucm-ops-tool-workspace",
+      "zoom": "ucm-ops-tool-workspace",
+      "microsoft 365": "ucm-ops-tool-workspace",
+      "office 365": "ucm-ops-tool-workspace",
+      "bookstack": "ucm-ops-tool-wiki",
+      "notion": "ucm-ops-tool-wiki",
+      "clockodo": "ucm-ops-tool-timetracking",
+      "toggl": "ucm-ops-tool-timetracking",
+      "mailchimp": "ucm-sales-tool-crm",
+      "brevo": "ucm-sales-tool-crm",
+      "kandidatenliste": "ucm-field-data_source-students"
+    },
+    "category_targets": {
+      "crm": "ucm-sales-tool-crm",
+      "file storage": "ucm-ops-tool-workspace",
+      "office suite": "ucm-ops-tool-workspace",
+      "excel": "ucm-field-data_source-students"
+    },
+    "unused_days": 180,
+    "track_logic": [
+      "Structured data (CRM, student lists, Excel lists) -> semantic_layer mapping onto UCM objects.",
+      "Documents (SharePoint, drives, wiki) -> sweep: export, tag, move into Google Workspace / Confluence.",
+      "Duplicate of a UCM tool -> sunset: export content, switch off by Day 30.",
+      "Before any switch-off: extract knowledge (decisions, how-tos, owners) into Confluence / Drive.",
+      "Finance / accounting -> keep_local (founder's rule).",
+      "Rules disagree or nothing matches -> execute model; if still unclear -> needs_human."
+    ],
+    "knowledge_templates": {
+      "chat": [
+        {
+          "item": "Decisions and agreements made in channels",
+          "to": "ucm-ops-tool-wiki"
+        },
+        {
+          "item": "Files shared only in chats",
+          "to": "ucm-ops-tool-workspace"
+        },
+        {
+          "item": "Guest channels with clients or partners (who, why)",
+          "to": "ucm-ops-tool-chat"
+        }
+      ],
+      "wiki": [
+        {
+          "item": "How-tos and process pages still in use",
+          "to": "ucm-ops-tool-wiki"
+        },
+        {
+          "item": "Page owners and last editors (knowledge holders)",
+          "to": "ucm-ops-tool-wiki"
+        }
+      ],
+      "time tracking": [
+        {
+          "item": "Project codes and hourly rates",
+          "to": "ucm-ops-tool-timetracking"
+        },
+        {
+          "item": "Open hours not yet paid out",
+          "to": "ucm-ops-tool-timetracking"
+        }
+      ],
+      "project management": [
+        {
+          "item": "Project history and lessons learned",
+          "to": "ucm-ops-tool-wiki"
+        },
+        {
+          "item": "Recurring task templates",
+          "to": "ucm-platform-tool-tickets"
+        }
+      ],
+      "video": [
+        {
+          "item": "Recordings worth keeping (trainings, onboarding)",
+          "to": "ucm-ops-tool-workspace"
+        }
+      ],
+      "email marketing": [
+        {
+          "item": "Newsletter list with consent records",
+          "to": "ucm-sales-tool-crm"
+        },
+        {
+          "item": "Templates and segments",
+          "to": "ucm-sales-tool-crm"
+        }
+      ],
+      "scheduling": [
+        {
+          "item": "Interview slot types and question sets",
+          "to": "ucm-ops-tool-workspace"
+        }
+      ],
+      "default": [
+        {
+          "item": "Interview the owner: what is it used for, who depends on it",
+          "to": "ucm-ops-tool-wiki"
+        },
+        {
+          "item": "Full data export archived",
+          "to": "ucm-ops-tool-workspace"
+        }
+      ]
+    }
+  },
+  "execute": {
+    "microsoft 365 business standard": [
+      "Sure! Here is the classification: {\"class\": \"K2\", \"track\": \"documents\", \"ucm_match\": \"ucm-ops-tool-workspace\", \"action\": \"migrate\", \"deadline\": \"Day 60\", \"reason\": \"Suite.\"}",
+      {
+        "name": "Microsoft 365 Business Standard",
+        "class": "K2",
+        "track": "sweep",
+        "ucm_match": "ucm-ops-tool-workspace",
+        "action": "migrate",
+        "deadline": "Day 60",
+        "saving_per_year": 4032,
+        "reason": "Suite holds mail and documents, so it cannot go on Day 30; sweep content into Google Workspace by Day 60, then cancel the licence."
+      }
+    ],
+    "kandidatenliste final v3 xlsx": {
+      "name": "Kandidatenliste_final_v3.xlsx",
+      "class": "K1",
+      "track": "sunset",
+      "ucm_match": "ucm-field-data_source-students",
+      "action": "export_and_switch_off",
+      "deadline": "Day 30",
+      "saving_per_year": 0,
+      "reason": "Student master list duplicates Studi-DB; export it into Studi-DB and delete the file."
+    },
+    "formular tool": {
+      "name": "Formular-Tool",
+      "class": "needs_human",
+      "track": "sweep",
+      "ucm_match": null,
+      "action": "decide",
+      "deadline": "Day 30",
+      "saving_per_year": 0,
+      "reason": "Unknown vendor and category; notes suggest it may feed the candidate list and payouts, so the Operations Lead must map its dependencies before closing."
+    },
+    "calendly": {
+      "name": "Calendly",
+      "class": "K3",
+      "track": "sunset",
+      "ucm_match": "ucm-ops-tool-workspace",
+      "action": "export_and_switch_off",
+      "deadline": "Day 30",
+      "saving_per_year": 960,
+      "reason": "Interview booking is covered by Google Calendar appointment schedules in UCM's Workspace."
+    }
+  },
+  "execute_default": {
+    "name": "",
+    "class": "needs_human",
+    "track": "sweep",
+    "ucm_match": null,
+    "action": "decide",
+    "deadline": "Day 30",
+    "saving_per_year": 0,
+    "reason": "Dry run has no canned answer for this row; a human must decide."
+  }
+}

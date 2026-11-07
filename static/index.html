@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DD Classifier + Registry</title>
+<style>
+  :root { --ink:#1f2328; --muted:#6b7280; --line:#e5e7eb; --bg:#f6f7f9; --acc:#4f46e5; --accbg:#eef2ff;
+          --ok:#15803d; --okbg:#f0fdf4; --warn:#b45309; --warnbg:#fffbeb; --err:#b91c1c; --errbg:#fef2f2; }
+  * { box-sizing: border-box; }
+  body { font: 14px/1.5 system-ui, -apple-system, sans-serif; margin: 0; color: var(--ink); background: var(--bg); }
+  .top { position: sticky; top: 0; z-index: 20; }
+  header { height: 52px; display: flex; align-items: center; gap: 14px; padding: 0 20px; background: #111827; color: #fff; }
+  header img { width: 26px; height: 26px; } header .title { font-weight: 600; } header .tagline { color: #9ca3af; font-size: 13px; }
+  header .right { margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: 13px; }
+  header .chip { background: #1f2937; border: 1px solid #374151; border-radius: 999px; padding: 3px 10px; }
+  header button { font: inherit; font-size: 13px; color: #fff; background: transparent; border: 1px solid #4b5563; border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+  header button.on { background: var(--acc); border-color: var(--acc); }
+  nav { display: flex; gap: 4px; padding: 0 20px; background: #fff; border-bottom: 1px solid var(--line); }
+  nav a { padding: 10px 12px; color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; font-weight: 500; }
+  nav a.on { color: var(--acc); border-bottom-color: var(--acc); } nav a .n { background: var(--acc); color: #fff; border-radius: 999px; font-size: 11px; padding: 0 6px; margin-left: 4px; }
+  main { padding: 20px 24px 60px; transition: margin-right .15s; }
+  body.drawer-open main { margin-right: 480px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; }
+  .card h2 { font-size: 16px; margin: 0 0 2px; } .card h3 { font-size: 14px; margin: 0 0 8px; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+  .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .grid2 > .card { margin-bottom: 0; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .kpi { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .kpi .l { font-size: 12px; color: var(--muted); } .kpi .v { font-size: 20px; font-weight: 600; margin-top: 2px; } .kpi .v small { font-size: 12px; font-weight: 400; color: var(--muted); }
+  .toolbar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .toolbar .meta { margin-left: auto; color: var(--muted); font-size: 13px; }
+  .guards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 18px; list-style: none; padding: 0; margin: 10px 0 0; font-size: 13px; }
+  .guards li { display: flex; gap: 8px; } .guards li::before { content: "✓"; color: var(--ok); font-weight: 700; }
+  table.t { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .t th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .t td { padding: 7px 8px; border-bottom: 1px solid #f1f2f4; vertical-align: top; }
+  .t tr.click:hover td { background: #f9fafb; cursor: pointer; } .t tr.sel td { background: var(--accbg); }
+  .t td.num, .t th.num { text-align: right; white-space: nowrap; } .t td.nw { white-space: nowrap; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; white-space: nowrap; background: #f3f4f6; color: #374151; }
+  .pill.K1 { background: #fee2e2; color: #991b1b; } .pill.K2 { background: #fef3c7; color: #92400e; } .pill.K3 { background: #dcfce7; color: #166534; } .pill.needs_human { background: #e0e7ff; color: #3730a3; }
+  .pill.migrating { background: #dbeafe; color: #1e40af; } .pill.sunset_planned { background: #fef3c7; color: #92400e; } .pill.archived { color: #9ca3af; }
+  .pill.open { background: #fef3c7; color: #92400e; } .pill.answered { background: #dbeafe; color: #1e40af; } .pill.resolved { background: #dcfce7; color: #166534; }
+  .pill.issue { background: #fee2e2; color: #991b1b; } .pill.target { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: var(--muted); }
+  .muted { color: var(--muted); } .warnc { color: var(--warn); } .hidden-v { color: #9ca3af; font-style: italic; font-size: 12px; }
+  .btn { font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 6px; border: 1px solid #d1d5db; background: #fff; cursor: pointer; color: var(--ink); }
+  .btn:hover { background: #f9fafb; } .btn.primary { background: var(--acc); border-color: var(--acc); color: #fff; } .btn.small { padding: 2px 8px; font-size: 12px; }
+  input[type=text], select, textarea { font: inherit; font-size: 13px; border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 8px; background: #fff; }
+  textarea { width: 100%; min-height: 56px; resize: vertical; }
+  .msg { margin-top: 8px; padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+  .msg.ok { color: var(--ok); background: var(--okbg); } .msg.err { color: var(--err); background: var(--errbg); }
+  .banner { padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
+  .banner.warn { background: var(--warnbg); color: var(--warn); border: 1px solid #fde68a; } .banner.info { background: var(--accbg); color: #3730a3; border: 1px solid #c7d2fe; }
+  #toast { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 50; }
+  #toast div { padding: 8px 16px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.12); font-size: 13px; }
+  /* intake: spreadsheet look, deliberately different from the registry */
+  .drop { display: block; border: 2px dashed #c7d2fe; border-radius: 10px; padding: 22px; text-align: center; background: #fafaff; cursor: pointer; }
+  .drop:hover, .drop.over { border-color: var(--acc); background: var(--accbg); } .drop input { display: none; }
+  .sheetwrap { overflow-x: auto; border: 1px solid #d1d5db; border-radius: 6px; }
+  table.sheet { border-collapse: collapse; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: #fff; width: 100%; }
+  .sheet th { background: #f3f4f6; color: #6b7280; font-weight: 500; border: 1px solid #e5e7eb; padding: 3px 8px; text-align: left; white-space: nowrap; }
+  .sheet td { border: 1px solid #eef0f2; padding: 3px 8px; white-space: nowrap; max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+  .sheet td.rn { background: #f3f4f6; color: #9ca3af; text-align: right; width: 1%; }
+  .sheet tr:hover td { background: #f0fdf4; cursor: pointer; } .sheet tr.sel td { background: #dcfce7; }
+  .xl { background: #107c41; color: #fff; border-radius: 4px; padding: 1px 6px; font-size: 11px; font-weight: 600; margin-right: 6px; }
+  /* registry: grouped by company */
+  .group { border-left: 4px solid var(--acc); } .group.target_1 { border-left-color: #f59e0b; }
+  .filters { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; font-size: 13px; }
+  .seg { display: inline-flex; border: 1px solid #d1d5db; border-radius: 6px; overflow: hidden; }
+  .seg button { font: inherit; font-size: 12px; border: 0; border-right: 1px solid #d1d5db; background: #fff; padding: 4px 10px; cursor: pointer; }
+  .seg button:last-child { border-right: 0; } .seg button.on { background: var(--acc); color: #fff; }
+  /* drawer */
+  .drawer { position: fixed; top: 52px; right: 0; bottom: 0; width: 470px; background: #fff; border-left: 1px solid var(--line); box-shadow: -8px 0 24px rgba(0,0,0,.06); z-index: 30; display: flex; flex-direction: column; }
+  .drawer[hidden] { display: none; }
+  .drawer .dh { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .drawer .dh .x { margin-left: auto; }
+  .drawer .db { overflow-y: auto; padding: 14px 18px 40px; flex: 1; }
+  .dname { font-size: 17px; font-weight: 600; margin: 0 0 6px; } .pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .reason { background: #f9fafb; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+  .guard { color: var(--warn); font-size: 12px; margin-top: 4px; }
+  .sec { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 14px; }
+  .sec h4 { margin: 0 0 8px; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .kv { display: grid; grid-template-columns: 120px 1fr auto; gap: 4px 10px; font-size: 13px; align-items: baseline; }
+  .kv .k { color: var(--muted); } .ask { border: 0; background: none; color: var(--acc); cursor: pointer; font-size: 12px; padding: 0; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; } .row > input[type=text] { flex: 1; min-width: 160px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .checks label { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
+  .checks label .row { margin-left: auto; flex-wrap: nowrap; } .checks .btn { white-space: nowrap; }
+  .q { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; background: #fff; }
+  .q .meta { font-size: 12px; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .q .text { margin: 6px 0; } .q .ans { border-left: 3px solid #c7d2fe; padding: 2px 10px; margin: 6px 0; font-size: 13px; }
+  .login { max-width: 780px; margin: 48px auto; }
+  .users { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .users button { text-align: left; padding: 14px; font: inherit; cursor: pointer; background: #fff; border: 1px solid var(--line); border-radius: 10px; }
+  .users button:hover { border-color: var(--acc); } .users small { color: var(--muted); display: block; margin-top: 4px; }
+  .empty { color: var(--muted); padding: 16px 0; }
+</style>
+<script src="/static/flow.js"></script>
+</head>
+<body>
+<div class="top"><header><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234f46e5'/%3E%3Ctext x='32' y='32' dy='0.35em' text-anchor='middle' font-family='system-ui' font-size='26' font-weight='600' fill='white'%3EDR%3C/text%3E%3C/svg%3E" alt="">
+  <span class="title">DD Classifier + Registry</span><span class="tagline">target tool list in, docking plan out · TEST DATA</span><span class="right" id="who"></span></header>
+  <nav id="tabs"></nav></div>
+<main id="page"></main>
+<aside class="drawer" id="drawer" hidden></aside>
+<div id="toast"></div>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const slug = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const pill = (v, cls = v) => `<span class="pill ${esc(cls)}">${esc(String(v).replace("_", " "))}</span>`;
+const HID = `<span class="hidden-v">hidden</span>`;
+const money = (v, cur = "€") => (v === undefined ? HID : cur + Math.round(v || 0).toLocaleString("de-DE"));
+const LABEL = { name: "Name", vendor: "Vendor", category: "Category", users: "Users", cost_per_year: "Cost / year", last_used: "Last used",
+  owner_role: "Owner", holds_data: "Holds data", notes: "Notes", data_class: "Data class", saving_per_year: "Saving / year", ucm_name: "UCM match" };
+const INV_FIELDS = ["name", "vendor", "category", "users", "cost_per_year", "last_used", "owner_role", "holds_data", "notes"];
+const ROLES = ["IT Lead", "Platform Lead", "Head of Field", "CEO", "Finance Lead", "Operations Lead"];
+
+let ME, D = {};
+const S = { page: null, sel: null, drawer: false, dtab: "system", flash: null, regCo: "", regSt: "", qFilter: "open", askField: "", ovClass: null };
+const can = (p) => ME && ME.perms.includes(p);
+const isTarget = () => ME.company !== "ucm";
+
+async function api(path, body, headers) {
+  const opt = body === undefined ? {} : { method: "POST", headers: headers || { "Content-Type": "application/json" }, body: body instanceof Blob ? body : JSON.stringify(body) };
+  const r = await fetch(path, opt);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(data.error || r.statusText), { status: r.status });
+  return data;
+}
+function toast(text, err) {
+  $("#toast").innerHTML = `<div class="msg ${err ? "err" : "ok"}">${esc(text)}</div>`;
+  clearTimeout(toast.t); toast.t = setTimeout(() => ($("#toast").innerHTML = ""), 4000);
+}
+
+// ---------- login ----------
+async function showLogin() {
+  ME = null; $("#who").innerHTML = ""; $("#tabs").innerHTML = ""; $("#drawer").hidden = true; document.body.classList.remove("drawer-open");
+  const users = await api("/api/users");
+  $("#page").innerHTML = `<div class="login"><div class="card"><h2>Log in as</h2><p class="sub">Demo users, no passwords. The server issues a signed session cookie; every API call carries it and the data layer filters what comes back.</p>
+    <div class="users">${users.map((u) => `<button onclick="login('${esc(u.id)}')"><b>${esc(u.name)}</b> · ${pill(u.company, u.company === "ucm" ? "" : "target")}<small>${esc(u.blurb)}</small></button>`).join("")}</div></div></div>`;
+}
+async function login(id) { await api("/api/login", { user_id: id }); S.page = null; S.sel = null; boot(); }
+async function logout() { await api("/api/logout", {}); showLogin(); }
+
+// ---------- data ----------
+const SOURCES = [["results", "/api/results", "view_results"], ["registry", "/api/registry", "view_registry"], ["inventory", "/api/inventory", "view_inventory"],
+  ["intake", "/api/intake", "view_inventory"], ["rules", "/api/rules", "view_rules"], ["questions", "/api/questions", null], ["audit", "/api/audit", "view_audit"]];
+async function reload() {
+  const got = await Promise.all(SOURCES.map(([k, url, perm]) => (perm && !can(perm) ? null : api(url).catch((e) => ({ __error: e })))));
+  D = Object.fromEntries(SOURCES.map(([k], i) => [k, got[i]]));
+}
+const pages = () => [["intake", isTarget() ? "Our tool list" : "Intake", "view_inventory"], ["plan", "Docking plan", "view_results"], ["registry", "Registry", "view_registry"],
+  ["rules", "Rule sheet", "view_rules"], ["questions", isTarget() ? "Questions from UCM" : "Questions", null], ["audit", "Audit log", "view_audit"]].filter(([, , p]) => !p || can(p));
+
+async function boot() {
+  try { ME = await api("/api/me"); } catch { return showLogin(); }
+  await reload();
+  const ids = pages().map((p) => p[0]);
+  S.page = ids.includes(location.hash.slice(1)) ? location.hash.slice(1) : ids.includes("plan") ? "plan" : "intake";
+  if (window.Flow) Flow.event("login", { message: `${ME.role} logged in (${ME.company})` });
+  render();
+}
+window.onhashchange = () => { if (ME) { S.page = location.hash.slice(1) || S.page; render(); } };
+
+// ---------- render ----------
+function render() {
+  const openQ = (D.questions || []).filter((q) => q.status !== "resolved").length;
+  $("#who").innerHTML = `<span class="chip">${esc(ME.name)} · ${esc(ME.company)}</span>${window.Flow && !isTarget() ? `<button class="${S.drawer && S.dtab === "arch" ? "on" : ""}" onclick="toggleArch()">Architecture</button>` : ""}<button onclick="logout()">Switch user</button>`;
+  $("#tabs").innerHTML = pages().map(([id, label]) => `<a href="#${id}" class="${S.page === id ? "on" : ""}">${esc(label)}${id === "questions" && openQ ? `<span class="n">${openQ}</span>` : ""}</a>`).join("");
+  const fn = { intake: pageIntake, plan: pagePlan, registry: pageRegistry, rules: pageRules, questions: pageQuestions, audit: pageAudit }[S.page];
+  $("#page").innerHTML = fn ? fn() : "";
+  renderDrawer();
+}
+const errCard = (title, e) => `<div class="card"><h2>${esc(title)}</h2><div class="msg err">${esc(e.status)} · ${esc(e.message)}</div></div>`;
+const flash = (slot) => (S.flash && S.flash.slot === slot ? `<div class="msg ${S.flash.ok ? "ok" : "err"}">${esc(S.flash.text)}</div>` : "");
+
+// ---------- intake ----------
+function pageIntake() {
+  const inv = D.inventory, m = D.intake;
+  if (!inv || inv.__error) return errCard("Inventory", inv ? inv.__error : { status: 403, message: "no access" });
+  const stale = D.results && D.results.stale ? `<div class="banner warn">The inventory changed after the last DD run. Run DD again on the Docking plan tab to update the plan.</div>` : "";
+  return `${stale}<div class="grid2">
+    <div class="card"><h2>${isTarget() ? "Upload your tool list" : "1 · Upload the target's export"}</h2>
+      <p class="sub">Excel (.xlsx) or CSV, as IT or finance exports it. Title rows, German headers and totals rows are fine: the header is detected and columns are mapped.</p>
+      <label class="drop" id="drop" ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="dropFile(event)">
+        <input type="file" accept=".xlsx,.xlsm,.csv" onchange="uploadFile(this.files[0])"><b>Choose a file</b> or drop it here</label>
+      <p class="hint"><a href="/samples/target_inventory_export.xlsx">Download sample export (.xlsx)</a> · the original file is stored unchanged; the classifier only reads the mapped copy.</p>${flash("upload")}</div>
+    <div class="card"><h2>Column mapping</h2>
+      <p class="sub">${m.source === "upload" ? `<span class="xl">XLSX</span>${esc(m.file)} · uploaded by ${esc(m.by)} · ${esc((m.at || "").slice(0, 16).replace("T", " "))} · header found on row ${esc(m.header_row)}` : "Seed data (target_inventory.csv). Upload an export to replace it."}</p>
+      <table class="t"><tr><th>Source column</th><th>→ Inventory field</th></tr>${m.mapping.map((x) => `<tr><td>${esc(x.column) || '<span class="muted">(empty)</span>'}</td><td>${x.field ? `<span class="mono">${esc(x.field)}</span>` : '<span class="warnc">ignored</span>'}</td></tr>`).join("")}</table>
+      ${m.warnings.length ? `<div class="hint warnc">${m.warnings.map(esc).join("<br>")}</div>` : ""}</div></div>
+    <div class="card" style="margin-top:16px"><h2><span class="xl">XLSX</span>${isTarget() ? "Your tool list" : "Inventory"} · ${inv.length} rows · read-only</h2>
+      <p class="sub">Exactly as mapped from the export. ${isTarget() ? "Click a row to see questions UCM has about it." : "Click a row to ask the target about a value."}</p>
+      <div class="sheetwrap"><table class="sheet"><tr><th></th>${INV_FIELDS.map((f) => `<th>${f}</th>`).join("")}</tr>
+      ${inv.map((r, i) => `<tr class="${S.sel && S.sel.id === r.id ? "sel" : ""}" onclick="openSel('inventory','${esc(r.id)}')"><td class="rn">${i + 1}</td>${INV_FIELDS.map((f) => `<td title="${esc(r[f])}">${r[f] === undefined ? HID : esc(r[f])}</td>`).join("")}</tr>`).join("")}</table></div></div>`;
+}
+function dropFile(ev) { ev.preventDefault(); $("#drop").classList.remove("over"); if (ev.dataTransfer.files[0]) uploadFile(ev.dataTransfer.files[0]); }
+async function uploadFile(file) {
+  if (!file) return;
+  try {
+    const m = await api("/api/inventory/upload", file, { "X-Filename": encodeURIComponent(file.name) });
+    S.flash = { slot: "upload", ok: true, text: `${file.name}: ${m.rows} systems mapped (header on row ${m.header_row}, ${m.warnings.length} warnings)` };
+    toast("Upload mapped into the inventory"); Flow.event("upload", { file: file.name, rows: m.rows, message: `${file.name} uploaded: ${m.rows} rows mapped` });
+    await reload();
+  } catch (e) { S.flash = { slot: "upload", ok: false, text: `${e.status} · ${e.message}` }; if (e.status === 403) Flow.event("denied", { action: "upload", role: ME.role, message: e.message }); }
+  render();
+}
+
+// ---------- docking plan ----------
+const STATUS_ICONS = (r) => {
+  const q = questionsFor("result", r).filter((x) => x.status !== "resolved").length, k = r.knowledge || [];
+  return [r.sunset_confirmed_by ? `<span title="sunset confirmed by ${esc(r.sunset_confirmed_by)}">✓ confirmed</span>` : "",
+    k.length ? `<span title="knowledge items extracted">📚 ${k.filter((x) => x.done).length}/${k.length}</span>` : "", q ? `<span title="open questions">💬 ${q}</span>` : ""].filter(Boolean).join(" · ");
+};
+function pagePlan() {
+  const res = D.results;
+  if (res && res.__error) return errCard("Docking plan", res.__error);
+  const toolbar = `<div class="card"><div class="toolbar">${can("run_dd") ? `<button class="btn primary" onclick="runDD()">Run DD on target_1</button>
+<span class="muted">Model step: canned answers (dry run)</span>` : `<b>Docking plan</b><span class="muted">read-only view for ${esc(ME.role)}${ME.hidden_fields.length ? " · € figures hidden" : ""}</span>`}
+      <span class="meta">${res ? `Run ${esc(res.at.slice(0, 16).replace("T", " "))} by ${esc(res.by)} · ${res.dry_run ? "dry run" : "live Lyceum models"}` : "No run yet"}</span></div>${flash("run")}
+    <ul class="guards"><li>Classifier only reads the inventory</li><li>K1 is never switched off</li><li>Every row has a reason and decided_by</li>
+      <li>Sunsets need Platform Lead or CEO</li><li>Target users never see this plan</li><li>Every action and denial is audited</li></ul></div>`;
+  if (!res) return toolbar + `<div class="card empty">No DD run yet. Check the inventory on the Intake tab, then run DD.</div>`;
+  const s = res.summary, rows = res.rows, sel = (r) => (S.sel && S.sel.id === r.id ? "sel" : ""), showMoney = s.saving_per_year !== undefined;
+  const rc = s.run_cost, cur = rc && rc.currency === "USD" ? "$" : "€";
+  const holders = {};
+  rows.filter((r) => ["K1", "K2"].includes(r.class)).forEach((r) => (holders[r.owner_role || "(no owner)"] ||= []).push(r.name));
+  const mini = (list, cols) => (list.length ? `<table class="t">${list.map((r) => `<tr class="click ${sel(r)}" onclick="openSel('result','${esc(r.id)}')">${cols.map((c) => `<td class="${c[1] ? "num" : ""}">${c[0](r)}</td>`).join("")}</tr>`).join("")}</table>` : `<div class="empty">none</div>`);
+  const fallbacks = rc && rc.events ? rc.events.filter((e) => e.event.startsWith("unavailable")) : [];
+  return `${res.stale ? `<div class="banner warn">The inventory was re-uploaded after this run. Run DD again to update the plan.</div>` : ""}${toolbar}
+    ${fallbacks.length ? `<div class="banner info">Model fallback used: ${fallbacks.map((e) => `${esc(e.model)} ${esc(e.event)}`).join(" · ")}</div>` : ""}
+    <div class="kpis"><div class="kpi"><div class="l">Systems</div><div class="v">${s.total}</div></div>
+      <div class="kpi"><div class="l">K1 · K2 · K3 · human</div><div class="v">${s.by_class.K1} · ${s.by_class.K2} · ${s.by_class.K3} · ${s.by_class.needs_human}</div></div>
+      ${showMoney ? `<div class="kpi"><div class="l">Saved per year</div><div class="v">${money(s.saving_per_year)}</div></div>` : ""}
+      <div class="kpi"><div class="l">Rules · model · human</div><div class="v">${s.by_rules} · ${s.by_model} · ${s.by_human}</div></div>
+      ${rc ? `<div class="kpi"><div class="l">Run cost${rc.estimated ? " (estimated)" : ""}</div><div class="v">${cur + rc.amount.toFixed(4)}</div></div>` : ""}</div>
+    <div class="card"><h2>Migration order</h2><p class="sub">Click a system to see why, change its class, confirm a sunset, plan knowledge extraction or ask a question.</p>
+      <table class="t"><tr><th>#</th><th>System</th><th>Class</th><th>Track</th><th>Action</th><th>Deadline</th>${showMoney ? '<th class="num">€ / year saved</th>' : ""}<th>Decided by</th><th>Status</th></tr>
+      ${rows.map((r, i) => `<tr class="click ${sel(r)}" onclick="openSel('result','${esc(r.id)}')"><td class="muted">${i + 1}</td><td><b>${esc(r.name)}</b>${r.cost_unclear && showMoney ? ` <span class="warnc" title="raw cost '${esc(r.cost_raw)}' is not an amount: ask the target">⚠</span>` : ""}</td>
+        <td>${pill(r.class)}</td><td class="nw">${esc(r.track.replace("_", " "))}</td><td class="nw">${esc(r.action.replaceAll("_", " "))}</td><td class="nw">${esc(r.deadline)}</td>${showMoney ? `<td class="num">${money(r.saving_per_year)}</td>` : ""}
+        <td>${esc(r.decided_by)}${r.guardrail && r.guardrail.length ? ` <span class="warnc" title="${esc(r.guardrail.join(" "))}">⚠</span>` : ""}</td><td class="muted nw">${STATUS_ICONS(r)}</td></tr>`).join("")}</table></div>
+    <div class="grid2">
+      <div class="card"><h3>Day 30 switch-off</h3>${mini(rows.filter((r) => r.action === "export_and_switch_off"), [[(r) => esc(r.name)], [(r) => `<span class="muted">→ ${esc(r.ucm_name || "none")}</span>`], [(r) => STATUS_ICONS(r) || '<span class="warnc">confirm pending</span>'], ...(showMoney ? [[(r) => money(r.saving_per_year), 1]] : [])])}</div>
+      <div class="card"><h3>Read-only until Day 90 · stays local</h3>${mini(rows.filter((r) => ["map_read_only", "keep_local"].includes(r.action)), [[(r) => esc(r.name)], [(r) => (r.action === "keep_local" ? '<span class="muted">stays local (finance)</span>' : `<span class="muted">maps onto ${esc(r.ucm_name || "—")}</span>`)], [(r) => esc(r.owner_role)]])}</div>
+      <div class="card"><h3>Needs a human</h3>${mini(rows.filter((r) => r.class === "needs_human"), [[(r) => `<b>${esc(r.name)}</b><div class="muted">${esc(r.reason)}</div>`]])}</div>
+      <div class="card"><h3>Knowledge holders to name before closing</h3>${Object.keys(holders).length ? `<table class="t">${Object.entries(holders).map(([role, sys]) => `<tr><td><b>${esc(role)}</b></td><td class="muted">${esc(sys.join(", "))}</td></tr>`).join("")}</table>` : `<div class="empty">none</div>`}</div>
+    </div>`;
+}
+async function runDD() {
+  const dry = true;
+  S.flash = { slot: "run", ok: true, text: "Running…" }; render();
+  try {
+    const r = await api("/api/run", { dry_run: dry });
+    const s = r.summary; S.flash = { slot: "run", ok: true, text: `Done: ${s.by_rules} by rules · ${s.by_model} by model · ${s.by_human} need a human. Registry updated with target_1 systems.` };
+    Flow.event("run", { ...s, message: `DD run: ${s.by_rules} rules · ${s.by_model} model · ${s.by_human} human` });
+    await reload();
+  } catch (e) { S.flash = { slot: "run", ok: false, text: `${e.status} · ${e.message}` }; if (e.status === 403) Flow.event("denied", { action: "run DD", role: ME.role, message: e.message }); }
+  render();
+}
+
+// ---------- registry ----------
+function pageRegistry() {
+  const reg = D.registry;
+  if (!reg || reg.__error) return errCard("Registry", reg ? reg.__error : { status: 403, message: "no access" });
+  const seg = (key, opts) => `<span class="seg">${opts.map(([v, l]) => `<button class="${S[key] === v ? "on" : ""}" onclick="S.${key}='${v}';render()">${l}</button>`).join("")}</span>`;
+  const comps = [...new Set(reg.map((e) => e.company))];
+  const rows = reg.filter((e) => (!S.regCo || e.company === S.regCo) && (!S.regSt || e.status === S.regSt));
+  const group = (co) => {
+    const list = rows.filter((e) => e.company === co);
+    return list.length ? `<div class="card group ${esc(co)}"><h2>${co === "ucm" ? "UCM" : esc(co)} <span class="muted" style="font-weight:400">· ${list.length} entries</span></h2>
+      <table class="t"><tr><th>Entry</th><th>Type</th><th>Owner</th><th>Data</th><th>Crit.</th><th>Status</th><th class="num">€ / year</th><th>Replaced by</th></tr>
+      ${list.map((e) => `<tr class="click ${S.sel && S.sel.id === e.id ? "sel" : ""}" onclick="openSel('registry','${esc(e.id)}')"><td><b>${esc(e.name)}</b><div class="mono">${esc(e.id)}</div></td><td>${pill(e.type, "")}</td><td>${esc(e.owner)}</td>
+        <td class="muted">${esc(e.data_kind)} · ${esc(e.data_class)}</td><td>${pill(e.criticality)}</td><td>${pill(e.status)}${e.sunset_confirmed_by ? `<div class="muted" style="font-size:12px">✓ ${esc(e.sunset_confirmed_by)}</div>` : ""}</td>
+        <td class="num">${money(e.cost_per_year)}</td><td class="mono">${esc(e.replaced_by || "")}</td></tr>`).join("")}</table></div>` : "";
+  };
+  return `<div class="filters"><span class="muted">Shown for ${esc(ME.role)}: ${esc(ME.companies.join(", ").replace("*", "all companies"))}${ME.hidden_classes.length ? `, no ${esc(ME.hidden_classes.join(", "))} entries` : ""}${ME.hidden_fields.length ? ", no € figures" : ""}</span>
+    ${seg("regCo", [["", "All"], ...comps.map((c) => [c, c])])} ${seg("regSt", [["", "Any status"], ["active", "active"], ["migrating", "migrating"], ["sunset_planned", "sunset planned"], ["archived", "archived"]])}</div>
+    ${comps.map(group).join("") || `<div class="card empty">No entries match.</div>`}`;
+}
+
+// ---------- rules ----------
+function pageRules() {
+  const s = D.rules;
+  if (s && s.__error) return errCard("Rule sheet", s.__error);
+  if (!s) return `<div class="card empty">No run yet: the plan model writes the rule sheet during a DD run.</div>`;
+  const list = (a) => (a || []).map(esc).join(", ");
+  const kv = (o) => `<table class="t">${Object.entries(o).map(([a, id]) => `<tr><td>${esc(a)}</td><td class="mono">${esc(id)}</td></tr>`).join("")}</table>`;
+  return `<div class="banner info">PLAN step: written once per run by <b>${esc(s.written_by)}</b> from 5 sample rows and the class rules. Deterministic rules apply it; the cheap EXECUTE model only sees rows the rules can't decide.</div>
+    <div class="card"><h2>Classes</h2><table class="t">${["K1", "K2", "K3"].map((k) => `<tr><td>${pill(k)}</td><td>${esc(s.classes[k].criteria)}</td><td class="muted">${list(s.classes[k].categories)}</td></tr>`).join("")}</table></div>
+    <div class="grid2"><div class="card"><h3>Alias hints (target name contains → UCM id)</h3>${kv(s.alias_hints)}</div>
+      <div class="card"><h3>Track logic</h3><ul style="margin:0;padding-left:18px">${s.track_logic.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+        <p class="hint">Stays local: ${list(s.keep_local_categories)} · structured → semantic layer: ${list(s.structured_categories)} · unused after ${esc(s.unused_days)} days</p>
+        <h3 style="margin-top:12px">Category → UCM target</h3>${kv(s.category_targets)}</div></div>
+    <div class="card" style="margin-top:16px"><h3>Knowledge to extract before a switch-off</h3><table class="t">${Object.entries(s.knowledge_templates || {}).map(([k, items]) => `<tr><td><b>${esc(k)}</b></td><td>${items.map((i) => `${esc(i.item)} <span class="mono">→ ${esc(i.to)}</span>`).join("<br>")}</td></tr>`).join("")}</table></div>`;
+}
+
+// ---------- questions ----------
+function questionsFor(type, obj) {
+  const inv = "inv-" + slug(obj.name);
+  return (D.questions || []).filter((q) => (q.entity_id === obj.id && q.entity_type === type) || q.inv_id === inv);
+}
+function qCard(q) {
+  return `<div class="q"><div class="meta">${pill(q.kind, q.kind === "issue" ? "issue" : "")} ${pill(q.status)} ${q.audience === "target" ? pill("sent to target", "target") : q.audience ? pill("internal") : ""}
+      <span>about <a href="javascript:void 0" onclick="openQ('${esc(q.id)}')"><b>${esc(q.entity_label)}</b></a>${q.field ? ` · ${esc(LABEL[q.field] || q.field)}` : ""}</span><span style="margin-left:auto">${esc(q.asked_by)} · ${esc((q.at || "").slice(0, 16).replace("T", " "))}</span></div>
+    <div class="text">${esc(q.text)}</div>${q.answers.map((a) => `<div class="ans"><b>${esc(a.by)}:</b> ${esc(a.text)}</div>`).join("")}
+    ${q.status !== "resolved" ? `<div class="row"><input type="text" id="ans-${esc(q.id)}" placeholder="Answer…"><button class="btn small" onclick="answerQ('${esc(q.id)}')">Answer</button>
+      ${isTarget() ? "" : `<button class="btn small" onclick="resolveQ('${esc(q.id)}')">Resolve</button>`}</div>` : `<div class="hint">Resolved by ${esc(q.resolved_by || "")}</div>`}
+    ${flash("q-" + q.id)}</div>`;
+}
+function pageQuestions() {
+  const qs = (D.questions || []).filter((q) => S.qFilter === "all" || q.status !== "resolved");
+  return `<div class="filters"><span class="seg"><button class="${S.qFilter === "open" ? "on" : ""}" onclick="S.qFilter='open';render()">Open</button><button class="${S.qFilter === "all" ? "on" : ""}" onclick="S.qFilter='all';render()">All</button></span>
+    <span class="muted">${isTarget() ? "Questions UCM sent about your tool list." : "Questions and data issues. Ask from any row: in the Docking plan, Registry or Inventory."}</span></div>
+    ${qs.map(qCard).join("") || `<div class="card empty">No questions.</div>`}`;
+}
+function openQ(id) { const q = D.questions.find((x) => x.id === id); if (q.entity_type === "result" && D.results) openSel("result", q.entity_id); else openSel("inventory", q.inv_id); }
+async function answerQ(id) { const t = $("#ans-" + id).value; await act("q-" + id, `/api/questions/${id}/answer`, { text: t }, "answer", "Answer saved"); }
+async function resolveQ(id) { await act("q-" + id, `/api/questions/${id}/resolve`, {}, "resolve", "Resolved"); }
+
+// ---------- audit ----------
+function pageAudit() {
+  const rows = D.audit;
+  if (!rows || rows.__error) return errCard("Audit log", rows ? rows.__error : { status: 403, message: "no access" });
+  const skip = ["at", "who", "role", "company", "action", "target"];
+  return `<div class="card"><h2>Audit log</h2><p class="sub">audit.jsonl: every login, upload, run, change, question and denied attempt. Append-only.</p>
+    <table class="t"><tr><th>When (UTC)</th><th>Who</th><th>Action</th><th>Target</th><th>Detail</th></tr>${rows.slice(0, 150).map((r) => `<tr><td class="mono">${esc(r.at.slice(0, 19).replace("T", " "))}</td><td>${esc(r.role)} <span class="muted">· ${esc(r.company)}</span></td>
+      <td>${r.action.startsWith("denied") ? `<b style="color:var(--err)">${esc(r.action)}</b>` : esc(r.action)}</td><td class="mono">${esc(r.target)}</td>
+      <td class="muted">${esc(Object.entries(r).filter(([k]) => !skip.includes(k)).map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`).join(" · "))}</td></tr>`).join("")}</table></div>`;
+}
+
+// ---------- drawer ----------
+function selected() {
+  if (!S.sel) return null;
+  const pool = { result: D.results && D.results.rows, registry: D.registry, inventory: D.inventory }[S.sel.type];
+  return Array.isArray(pool) ? pool.find((x) => x.id === S.sel.id) : null;
+}
+function openSel(type, id) {
+  if (S.sel && S.sel.id !== id) { S.flash = null; S.askField = ""; S.ovClass = null; }
+  S.sel = { type, id }; S.drawer = true; S.dtab = "system";
+  const o = selected();
+  if (o && type === "result" && window.Flow) Flow.event("select", { row: o, message: `Selected ${o.name}` });
+  render();
+}
+function toggleArch() { if (S.drawer && S.dtab === "arch") S.drawer = false; else { S.drawer = true; S.dtab = "arch"; } render(); }
+function closeDrawer() { S.drawer = false; render(); }
+function renderDrawer() {
+  const el = $("#drawer"), on = S.drawer && ME;
+  el.hidden = !on; document.body.classList.toggle("drawer-open", !!on);
+  if (!on) return;
+  const keep = el.querySelector(".db") ? el.querySelector(".db").scrollTop : 0;
+  const tab = (id, l) => `<button class="btn small ${S.dtab === id ? "primary" : ""}" onclick="S.dtab='${id}';render()">${l}</button>`;
+  el.innerHTML = `<div class="dh">${tab("system", "System")}${window.Flow && !isTarget() ? tab("arch", "Architecture") : ""}<button class="btn small x" onclick="closeDrawer()">✕</button></div><div class="db" id="db"></div>`;
+  const db = $("#db");
+  if (S.dtab === "arch") { db.innerHTML = `<p class="hint" style="margin-top:0">Demo view: where your last click went, architecture-wise.</p><div id="flowbox"></div>`; Flow.mount($("#flowbox")); return; }
+  const o = selected();
+  db.innerHTML = !o ? `<div class="empty">Select a row in the Docking plan, Registry or Inventory.</div>`
+    : S.sel.type === "result" ? drawerResult(o) : S.sel.type === "registry" ? drawerRegistry(o) : drawerInventory(o);
+  db.scrollTop = keep;
+}
+const kvRows = (o, fields, askable) => `<div class="kv">${fields.map(([f, v]) => `<span class="k">${esc(LABEL[f] || f)}</span><span>${v === undefined ? HID : v}</span><span>${askable ? `<button class="ask" title="ask about this value" onclick="S.askField='${f}';render();setTimeout(()=>$('#ask-text')&&$('#ask-text').focus(),0)">ask ?</button>` : ""}</span>`).join("")}</div>`;
+
+function askForm(type, o, fields) {
+  const canTarget = can("ask_target") && (o.company || "target_1") === "target_1";
+  if (!can("ask") && !canTarget) return "";
+  return `<div class="sec"><h4>Ask a question or flag a data issue</h4>
+    <div class="row"><select id="ask-kind"><option value="question">Question</option><option value="issue">Data issue</option></select>
+      <select id="ask-field"><option value="">General</option>${fields.map((f) => `<option value="${f}" ${S.askField === f ? "selected" : ""}>${esc(LABEL[f] || f)}</option>`).join("")}</select>
+      <select id="ask-aud">${can("ask") ? `<option value="internal">Internal (UCM only)</option>` : ""}${canTarget ? `<option value="target" ${S.askField && INV_FIELDS.includes(S.askField) ? "selected" : ""}>Send to target_1</option>` : ""}</select></div>
+    <textarea id="ask-text" placeholder="${S.askField === "cost_per_year" ? "e.g. Teams shows 'incl. M365': what does it really cost per year?" : "Your question…"}" style="margin-top:8px"></textarea>
+    <div class="row" style="margin-top:6px"><button class="btn primary" onclick="askQ('${type}','${esc(o.id)}')">Send</button></div>
+    <p class="hint">Sent to target_1, they see only the system name, the field and your text: never classes, savings or sunsets. Only their own inventory fields can be referenced.</p>${flash("ask")}</div>`;
+}
+async function askQ(type, id) {
+  const b = { entity_type: type, entity_id: id, kind: $("#ask-kind").value, field: $("#ask-field").value, audience: $("#ask-aud").value, text: $("#ask-text").value };
+  if (await act("ask", "/api/questions", b, "question", b.audience === "target" ? "Question sent to target_1" : "Internal question saved")) S.askField = "";
+}
+const threads = (type, o) => { const qs = questionsFor(type, o); return `<div class="sec"><h4>Questions & issues (${qs.length})</h4>${qs.map(qCard).join("") || '<div class="hint">None yet.</div>'}</div>`; };
+
+function drawerResult(r) {
+  const raw = r.cost_unclear ? ` <span class="warnc">(raw: "${esc(r.cost_raw)}")</span>` : "";
+  const k = r.knowledge || [];
+  const classSeg = ["K1", "K2", "K3", "needs_human"].map((c) => `<button class="${(S.ovClass || r.class) === c ? "on" : ""}" onclick="S.ovClass='${c}';this.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('on'));this.classList.add('on')">${c.replace("_", " ")}</button>`).join("");
+  return `<p class="dname">${esc(r.name)}</p><div class="pills">${pill(r.class)} ${pill(r.track.replace("_", " "), "")} ${pill(r.action.replaceAll("_", " "), "")} ${pill(r.deadline, "")} <span class="muted" style="font-size:12px">decided by ${esc(r.decided_by)}${r.model ? " · " + esc(r.model) : ""}</span></div>
+    <div class="reason">${esc(r.reason)}${(r.guardrail || []).map((g) => `<div class="guard">⚠ guardrail: ${esc(g)}</div>`).join("")}${r.previous ? `<div class="hint">Before: ${esc(r.previous.class)} · ${esc(r.previous.action)} (${esc(r.previous.decided_by)})</div>` : ""}</div>
+    <div class="sec"><h4>Facts</h4>${kvRows(r, [["category", esc(r.category)], ["cost_per_year", r.cost_per_year === undefined ? undefined : money(r.cost_per_year) + raw], ["saving_per_year", r.saving_per_year === undefined ? undefined : money(r.saving_per_year)],
+      ["ucm_name", esc(r.ucm_name || r.ucm_match || "none")], ["owner_role", esc(r.owner_role || "none")], ["last_used", esc(r.last_used || "")], ["holds_data", esc(r.holds_data)], ["data_class", esc(r.data_class)]], true)}</div>
+    <div class="sec"><h4>Change class</h4><span class="seg">${classSeg}</span>
+      <div class="row" style="margin-top:8px"><input type="text" id="ov-reason" placeholder="Reason (required, goes to the audit log)"><button class="btn" onclick="overrideClass('${esc(r.id)}')">Apply</button></div>
+      <p class="hint">${can("override_class") ? "Track, action and deadline follow the class. Guardrails still apply: K1 is never switched off, finance stays local." : `Requires the override_class permission (Platform Lead, CEO). The server will refuse it for ${esc(ME.role)}.`}</p>${flash("class")}</div>
+    ${r.action === "export_and_switch_off" ? `<div class="sec"><h4>Sunset</h4>${r.sunset_confirmed_by ? `<div class="msg ok">✓ Confirmed by ${esc(r.sunset_confirmed_by)}</div>` : `<button class="btn primary" onclick="act('sunset','/api/results/${esc(r.id)}/confirm',{},'confirm','Sunset confirmed')">Confirm sunset</button><p class="hint">Platform Lead or CEO only. Writes sunset_planned with the confirmer into the registry.</p>`}${flash("sunset")}</div>` : ""}
+    ${k.length ? `<div class="sec"><h4>Knowledge to extract before switch-off (${k.filter((x) => x.done).length}/${k.length})</h4><div class="checks">${k.map((x, i) => `<label><input type="checkbox" ${x.done ? "checked" : ""} onchange="act('know','/api/results/${esc(r.id)}/knowledge/${i}',{done:this.checked},'extract','Knowledge item updated')">
+        <span>${esc(x.item)}<br><span class="mono">→ ${esc(x.to)}${x.done ? ` · done by ${esc(x.done_by)}` : ""}</span></span>
+        <span class="row">${can("ask_target") && !x.done ? `<button class="btn small" onclick="event.preventDefault();requestKnowledge('${esc(r.id)}','${esc(r.name)}',${i})">Ask target to document</button>` : ""}</span></label>`).join("")}</div>
+      <p class="hint">The request to the target only asks them to document the item. It does not say the system will be switched off.</p>${flash("know")}</div>` : ""}
+    ${r.class !== "needs_human" ? `<div class="sec"><h4>Flag: needs a human</h4><div class="row"><input type="text" id="fl-reason" placeholder="Why can't this be decided yet?"><button class="btn" onclick="act('flag','/api/results/${esc(r.id)}/flag',{reason:$('#fl-reason').value},'flag','Flagged: needs a human')">Flag</button></div>${flash("flag")}</div>` : ""}
+    ${askForm("result", r, ["category", "cost_per_year", "users", "last_used", "owner_role", "holds_data", "saving_per_year", "ucm_name"])}${threads("result", r)}`;
+}
+async function overrideClass(id) {
+  const r = selected(), cls = S.ovClass || r.class;
+  const d = await act("class", `/api/results/${id}/class`, { class: cls, reason: $("#ov-reason").value }, "override", `Class changed to ${cls}`, { from: r.class, to: cls });
+  if (d) S.ovClass = null;
+}
+async function requestKnowledge(id, name, i) {
+  const item = selected().knowledge[i].item;
+  await act("know", "/api/questions", { entity_type: "result", entity_id: id, kind: "question", audience: "target", field: "",
+    text: `Knowledge handover for ${name}: please document "${item}" (where it lives, who knows it).` }, "question", "Request sent to target_1");
+}
+function drawerRegistry(e) {
+  const edit = can("edit_registry") ? `<div class="sec"><h4>Edit entry</h4><div class="row"><select id="ed-status">${["active", "migrating", "sunset_planned", "archived"].map((s) => `<option ${s === e.status ? "selected" : ""}>${s}</option>`).join("")}</select>
+    <input type="text" id="ed-owner" value="${esc(e.owner)}"><button class="btn" onclick="act('edit','/api/registry/${esc(e.id)}',{status:$('#ed-status').value,owner:$('#ed-owner').value},'edit','Registry entry saved')">Save</button></div>${flash("edit")}</div>` : "";
+  return `<p class="dname">${esc(e.name)}</p><div class="pills">${pill(e.criticality)} ${pill(e.status)} ${pill(e.company, e.company === "ucm" ? "" : "target")}</div><div class="mono" style="margin-bottom:8px">${esc(e.id)}</div>
+    <div class="reason">${esc(e.purpose)}</div>
+    <div class="sec"><h4>Fields</h4>${kvRows(e, [["type", esc(e.type)], ["owner", esc(e.owner)], ["data", `${esc(e.data_kind)} · ${esc(e.data_class)}`], ["cost_per_year", e.cost_per_year === undefined ? undefined : money(e.cost_per_year)],
+      ["last_used", esc(e.last_used)], ["replaced_by", esc(e.replaced_by || "—")], ["aliases", esc((e.aliases || []).join(", ") || "—")], ...(e.allowed_data ? [["allowed data", esc(e.allowed_data.join(", "))]] : [])], false)}</div>
+    ${edit}${askForm("registry", e, [])}${threads("registry", e)}`;
+}
+function drawerInventory(r) {
+  return `<p class="dname">${esc(r.name)}</p><div class="pills">${pill("inventory row", "")} ${pill(r.data_class, "")}</div>
+    <div class="sec"><h4>As exported</h4>${kvRows(r, INV_FIELDS.slice(1).map((f) => [f, r[f] === undefined ? undefined : esc(r[f]) || '<span class="muted">(empty)</span>']), !isTarget())}</div>
+    ${isTarget() ? "" : askForm("inventory", r, INV_FIELDS)}${threads("inventory", r)}`;
+}
+
+// generic action: inline result in the drawer, toast, flow highlight, 403 shown as such
+async function act(slot, path, body, evt, okText, extra) {
+  try {
+    const d = await api(path, body);
+    S.flash = { slot, ok: true, text: okText }; toast(okText); await reload();
+    if (window.Flow) Flow.event(evt, { row: S.sel && S.sel.type === "result" ? selected() : undefined, label: okText, message: okText, ...(extra || {}) });
+    render(); return d || true;
+  } catch (e) {
+    S.flash = { slot, ok: false, text: `${e.status || ""} · ${e.message}` }; toast(`${e.status} · ${e.message}`, true);
+    if (e.status === 403 && window.Flow) Flow.event("denied", { action: evt, role: ME.role, message: `${ME.role}: ${e.message}` });
+    await reload(); render(); return null;
+  }
+}
+boot();
+</script>
+</body>
+</html>
