@@ -10,7 +10,27 @@ python3 app.py --reset        # Python 3.9+, stdlib only → http://localhost:80
 Runs use canned model answers (dry run, offline). Live runs are switched off (`"live_runs": false` in config.json): a full live run took over 7 minutes because Kimi K3.1 Pro was at capacity and the Qwen fallback is slow.
 `python3 app.py --check-model [--live]`: execute model on 3 undecided rows, validates the JSON (retry with the error, then fallback).
 
-**Demo path:** Target 1 IT Lead uploads `/samples/target_inventory_export.xlsx` (Intake) and sees only their own list and questions from UCM → Platform Lead runs DD, clicks MS Teams (cost `incl. M365` ⚠) → *ask ?* on Cost / year → "Send to target_1" → Target answers → Platform Lead changes a class, confirms a sunset, ticks knowledge to extract → Head of Field sees the plan without € figures, a confirm returns 403 → Architecture panel shows where each click went → Audit log.
+## For reviewers: open and test it (≈5 minutes)
+Needs only Python 3.9+ (macOS/Linux have it; check with `python3 --version`). No install, no account, no internet, no API key.
+```
+git clone https://github.com/psystems-cmd/dd-registry-classifier.git    # or unzip the folder you received
+cd dd-registry-classifier
+python3 app.py --reset          # starts with fresh test data; leave this terminal open
+```
+Open http://localhost:8000 in a browser. If port 8000 is busy: `PORT=8010 python3 app.py --reset` and open http://localhost:8010. Stop with Ctrl+C; run `--reset` again any time to start over.
+
+Log in with one of the four demo users (no passwords; "Switch user" top right) and walk through:
+1. **Target 1 IT Lead** → *Our tool list*: upload the sample export (link on the page, or `data/samples/target_inventory_export.xlsx`). Check the column mapping. Note: only the tool list and *Questions from UCM* are visible, no plan, registry or log.
+2. **Platform Lead** → *Docking plan* → **Run DD on target_1**. Check the summary (systems, K1/K2/K3, € saved, rules · model · human split, run cost) and the migration order.
+3. Click **MS Teams** (⚠ next to the name): side panel → *ask ?* next to *Cost / year* → choose **Send to target_1** → Send.
+4. In the same panel: change the class (pick K1, give a reason, Apply: it becomes read-only until Day 90, never switched off), set it back to K3, **Confirm sunset**, tick a knowledge item to extract.
+5. **Target 1 IT Lead** → *Questions from UCM*: the question appears without any class, saving or sunset information. Answer it.
+6. **Head of Field** → *Docking plan*: no € figures, no legal entries; open MS Teams and try *Apply* or *Confirm sunset*: the server answers 403.
+7. **Platform Lead** → **Architecture** (top right) shows where each click went; *Audit log* lists every action, including the denied 403 attempts.
+
+Optional: `python3 app.py --check-model` validates the model step offline; `curl -H "X-Session: …"` works against the same API (token from `POST /api/login`).
+
+**Demo path (short):** Target 1 IT Lead uploads `/samples/target_inventory_export.xlsx` (Intake) and sees only their own list and questions from UCM → Platform Lead runs DD, clicks MS Teams (cost `incl. M365` ⚠) → *ask ?* on Cost / year → "Send to target_1" → Target answers → Platform Lead changes a class, confirms a sunset, ticks knowledge to extract → Head of Field sees the plan without € figures, a confirm returns 403 → Architecture panel shows where each click went → Audit log.
 
 ## How it works
 - **Intake** (`intake.py`, `xlsx.py`): messy .xlsx/.csv export → header row detected, German/English columns mapped, totals rows skipped. The original upload is kept unchanged in `data/uploads/`.

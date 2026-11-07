@@ -6,3 +6,7 @@ data/audit.jsonl
 data/.secret
 data/*.tmp
 __pycache__/
+data/intake.json
+data/inventory_active.csv
+data/questions.json
+data/uploads/
