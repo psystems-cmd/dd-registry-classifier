@@ -28,6 +28,11 @@ Log in with one of the four demo users (no passwords; "Switch user" top right) a
 6. **Head of Field** → *Docking plan*: no € figures, no legal entries; open MS Teams and try *Apply* or *Confirm sunset*: the server answers 403.
 7. **Platform Lead** → **Architecture** (top right) shows where each click went; *Audit log* lists every action, including the denied 403 attempts.
 
+### Using an AI assistant to run it
+- **Coding agent with a terminal** (Claude Code, Codex, Cursor…): open the repo folder and say *"Run and test this app following AGENTS.md."* The agent starts the server, runs `scripts/smoke_test.sh` (must print `ALL OK`) and hands you the URL. `CLAUDE.md` points Claude Code to the same file.
+- **Plain chat** (claude.ai, ChatGPT; it can't run code on your machine): paste this and it will guide you step by step:
+  > I have a Python demo app at https://github.com/psystems-cmd/dd-registry-classifier (read its README.md and AGENTS.md). It needs only Python 3.9+, no installs and no API key. Walk me through running it on my computer (I use macOS/Windows/Linux: pick mine), one command at a time, wait for my output after each step, and help me fix any error. Then guide me through the 7-step reviewer walkthrough in the README.
+
 Optional: `python3 app.py --check-model` validates the model step offline; `curl -H "X-Session: …"` works against the same API (token from `POST /api/login`).
 
 **Demo path (short):** Target 1 IT Lead uploads `/samples/target_inventory_export.xlsx` (Intake) and sees only their own list and questions from UCM → Platform Lead runs DD, clicks MS Teams (cost `incl. M365` ⚠) → *ask ?* on Cost / year → "Send to target_1" → Target answers → Platform Lead changes a class, confirms a sunset, ticks knowledge to extract → Head of Field sees the plan without € figures, a confirm returns 403 → Architecture panel shows where each click went → Audit log.
